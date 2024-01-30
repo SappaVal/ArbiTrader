@@ -5,20 +5,20 @@ import {
   Get,
   Param,
   ParseIntPipe,
-  ValidationPipe,
   Patch,
   Post,
   Query,
   UseGuards,
+  ValidationPipe,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { AdminGuard } from 'src/auth/guards/admin-auth.guard';
+import { JwtGuard } from 'src/auth/guards/jwt-auth.guard';
+import { User } from 'src/entities/user.entity';
+import { UserRole } from '../entities/enum/user-role.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRole } from '../entities/enum/user-role.enum';
-import { User } from 'src/entities/user.entity';
-import { JwtGuard } from 'src/auth/guards/jwt-auth.guard';
-import { AdminGuard } from 'src/auth/guards/admin-auth.guard';
-import { Admin } from 'typeorm';
+import { UsersService } from './users.service';
+
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -35,14 +35,8 @@ export class UsersController {
     return await this.usersService.findOne(id);
   }
 
-  @Post()
-  async createUser(
-    @Body(ValidationPipe) createUserDto: CreateUserDto,
-  ): Promise<User> {
-    return await this.usersService.createUser(createUserDto);
-  }
-
   @Patch(':id')
+  @UseGuards(JwtGuard)
   async patchUser(
     @Param('id', ParseIntPipe) id: number,
     @Body(ValidationPipe)
@@ -52,6 +46,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @UseGuards(AdminGuard)
   async deleteUser(@Param('id', ParseIntPipe) id: number) {
     return await this.usersService.deleteUser(id);
   }
