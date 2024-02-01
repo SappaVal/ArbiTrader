@@ -16,16 +16,13 @@ import { AdminGuard } from 'src/auth/guards/admin-auth.guard';
 import { JwtGuard } from 'src/auth/guards/jwt-auth.guard';
 import { User } from 'src/entities/user.entity';
 import { UserRole } from '../entities/enum/user-role.enum';
-import { ExchangesService } from './../exchanges/exchanges.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserExchangeDetailsDTO } from './dto/user-exchange-details.dto';
 import { UsersService } from './users.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly exchangesService: ExchangesService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Get()
   @UseGuards(AdminGuard)
@@ -40,7 +37,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtGuard)
+  @UseGuards(AdminGuard)
   async updateUser(
     @Param('id', ParseIntPipe) id: number,
     @Body(ValidationPipe)
@@ -52,14 +49,17 @@ export class UsersController {
   @Delete(':id')
   @UseGuards(AdminGuard)
   async removeUser(@Param('id', ParseIntPipe) id: number) {
+    const user = await this.usersService.findOne(id);
+    if (user.role === UserRole.ADMIN) {
+      throw new Error('Admin cannot be deleted');
+    }
     return await this.usersService.remove(id);
   }
 
   @Post('/exchanges')
   @UseGuards(JwtGuard)
-  async getExchangesByUser(@Request() req) {
+  async getExchangesByUser(@Request() req): Promise<UserExchangeDetailsDTO[]> {
     const userId = req.user.id;
-    console.log('userId', userId);
     return this.usersService.findUserExchangesDetails(+userId);
   }
 }

@@ -4,13 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { UserExchange } from 'src/entities/user-exchange.entity.ts';
 import { Repository } from 'typeorm';
 import { UserRole } from '../entities/enum/user-role.enum';
 import { User } from '../entities/user.entity';
 import { encodePassword } from '../utils/bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserExchange } from 'src/entities/user-exchange.entity.ts';
+import { UserExchangeDetailsDTO } from './dto/user-exchange-details.dto';
 
 @Injectable()
 export class UsersService {
@@ -96,13 +97,16 @@ export class UsersService {
     return user.exchanges;
   }
 
-  async findUserExchangesDetails(userId: number): Promise<any[]> {
+  async findUserExchangesDetails(
+    userId: number,
+  ): Promise<UserExchangeDetailsDTO[]> {
     return this.userExchangeRepository
       .createQueryBuilder('ue')
       .select([
         'ue.id as id',
         'ue.updatedAt as updatedAt',
-        'e.name AS exchangeName', // Renommer pour la clarté
+        'e.id as exchangeId',
+        'e.name AS exchangeName',
         'ue.apiKey as apiKey',
       ])
       .innerJoin('ue.user', 'u', 'u.id = :userId', { userId })
