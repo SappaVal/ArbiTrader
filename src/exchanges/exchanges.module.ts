@@ -8,5 +8,6 @@ import { ExchangesService } from './exchanges.service';
   imports: [TypeOrmModule.forFeature([Exchange])],
   controllers: [ExchangesController],
   providers: [ExchangesService],
+  exports: [ExchangesService],
 })
 export class ExchangesModule {}

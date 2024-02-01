@@ -10,6 +10,7 @@ import { User } from './entities/user.entity';
 import { Wallet } from './entities/wallet.entity';
 import { ExchangesModule } from './exchanges/exchanges.module';
 import { UsersModule } from './users/users.module';
+import { GlobalParamsModule } from './global-params/global-params.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { UsersModule } from './users/users.module';
       }),
       inject: [ConfigService],
     }),
+    GlobalParamsModule,
   ],
 })
 export class AppModule {}
