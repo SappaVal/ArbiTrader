@@ -1,4 +1,4 @@
-import { Entity, ManyToOne } from 'typeorm';
+import { Entity, ManyToOne, Column } from 'typeorm';
 import { BaseTable } from './base/base.table';
 import { User } from './user.entity';
 import { Exchange } from './exchange.entity';
@@ -10,4 +10,7 @@ export class UserExchange extends BaseTable {
 
   @ManyToOne(() => Exchange, (exchange) => exchange.users)
   exchange: Exchange;
+
+  @Column({ nullable: true })
+  apiKey: string;
 }

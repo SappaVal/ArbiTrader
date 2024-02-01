@@ -10,11 +10,14 @@ import { User } from '../entities/user.entity';
 import { encodePassword } from '../utils/bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserExchange } from 'src/entities/user-exchange.entity.ts';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
+    @InjectRepository(UserExchange)
+    private userExchangeRepository: Repository<UserExchange>,
   ) {}
 
   async findAll(role?: UserRole): Promise<User[]> {
@@ -51,7 +54,7 @@ export class UsersService {
     return user;
   }
 
-  async createUser(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto) {
     const user = await this.userRepository.findOne({
       where: [{ email: createUserDto.email }],
     });
@@ -69,14 +72,41 @@ export class UsersService {
     return await this.userRepository.save(newUser);
   }
 
-  async updateUser(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     await this.userRepository.update(id, updateUserDto);
     return await this.findOne(id);
   }
 
-  async deleteUser(id: number): Promise<User> {
+  async remove(id: number): Promise<User> {
     const removedUser = this.findOne(id);
     await this.userRepository.delete(id);
     return removedUser;
+  }
+
+  async findExchangesByUserId(userId: number) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['exchanges'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with id ${userId} not found`);
+    }
+
+    return user.exchanges;
+  }
+
+  async findUserExchangesDetails(userId: number): Promise<any[]> {
+    return this.userExchangeRepository
+      .createQueryBuilder('ue')
+      .select([
+        'ue.id as id',
+        'ue.updatedAt as updatedAt',
+        'e.name AS exchangeName', // Renommer pour la clarté
+        'ue.apiKey as apiKey',
+      ])
+      .innerJoin('ue.user', 'u', 'u.id = :userId', { userId })
+      .innerJoin('ue.exchange', 'e')
+      .getRawMany();
   }
 }

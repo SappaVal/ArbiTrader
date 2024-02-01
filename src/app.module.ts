@@ -1,18 +1,21 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from './users/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { User } from './entities/user.entity';
-import { Exchange } from './entities/exchange.entity';
-import { UserExchange } from './entities/user-exchange.entity.ts';
-import { GlobalParam } from './entities/global-param.entity';
-import { UserGlobalParam } from './entities/user-global-param.entity';
-import { Wallet } from './entities/wallet.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+import { Exchange } from './entities/exchange.entity';
+import { GlobalParam } from './entities/global-param.entity';
+import { UserExchange } from './entities/user-exchange.entity.ts';
+import { UserGlobalParam } from './entities/user-global-param.entity';
+import { User } from './entities/user.entity';
+import { Wallet } from './entities/wallet.entity';
+import { ExchangesModule } from './exchanges/exchanges.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
     UsersModule,
+    AuthModule,
+    ExchangesModule,
     ConfigModule.forRoot({
       envFilePath: '.env',
     }),
@@ -37,7 +40,6 @@ import { AuthModule } from './auth/auth.module';
       }),
       inject: [ConfigService],
     }),
-    AuthModule,
   ],
 })
 export class AppModule {}

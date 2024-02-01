@@ -6,12 +6,11 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import { UsersService } from 'src/users/users.service';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
-import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { RefreshJwtGuard } from './guards/refresh-jwt-auth.guard';
-import { User } from 'src/entities/user.entity';
-import { UsersService } from 'src/users/users.service';
 
 @Controller('auth')
 export class AuthController {
@@ -28,7 +27,7 @@ export class AuthController {
 
   @Post('register')
   async createUser(@Body(ValidationPipe) createUserDto: CreateUserDto) {
-    return await this.usersService.createUser(createUserDto);
+    return await this.usersService.create(createUserDto);
   }
 
   @UseGuards(RefreshJwtGuard)
