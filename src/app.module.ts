@@ -11,6 +11,7 @@ import { Wallet } from './entities/wallet.entity';
 import { ExchangesModule } from './exchanges/exchanges.module';
 import { UsersModule } from './users/users.module';
 import { GlobalParamsModule } from './global-params/global-params.module';
+import { CmcModule } from './cmc/cmc.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { GlobalParamsModule } from './global-params/global-params.module';
       inject: [ConfigService],
     }),
     GlobalParamsModule,
+    CmcModule,
   ],
 })
 export class AppModule {}
