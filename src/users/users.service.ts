@@ -12,6 +12,7 @@ import { encodePassword } from '../utils/bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserExchangeDetailsDTO } from './dto/user-exchange-details.dto';
+import { UserGlobalParam } from 'src/entities/user-global-param.entity';
 
 @Injectable()
 export class UsersService {
@@ -19,6 +20,8 @@ export class UsersService {
     @InjectRepository(User) private userRepository: Repository<User>,
     @InjectRepository(UserExchange)
     private userExchangeRepository: Repository<UserExchange>,
+    @InjectRepository(UserGlobalParam)
+    private userGlobalParamRepository: Repository<UserGlobalParam>,
   ) {}
 
   async findAll(role?: UserRole): Promise<User[]> {
@@ -111,6 +114,14 @@ export class UsersService {
       ])
       .innerJoin('ue.user', 'u', 'u.id = :userId', { userId })
       .innerJoin('ue.exchange', 'e')
+      .getRawMany();
+  }
+
+  async findUserGlobalParams(userId: number) {
+    return this.userGlobalParamRepository
+      .createQueryBuilder('ugp')
+      .select(['ugp.id as id', 'ugp.updatedAt as updatedAt', 'ugp.value'])
+      .innerJoin('ugp.user', 'u', 'u.id = :userId', { userId })
       .getRawMany();
   }
 }

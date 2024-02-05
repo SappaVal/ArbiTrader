@@ -10,4 +10,6 @@ export class UserGlobalParam extends BaseTable {
 
   @ManyToOne(() => GlobalParam, (globalParam) => globalParam.userGlobalParams)
   globalParam: GlobalParam;
+
+  value: string;
 }

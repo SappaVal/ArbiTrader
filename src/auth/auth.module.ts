@@ -11,6 +11,7 @@ import { JwtStrategy } from './strategies/jwt-strategy';
 import { LocalStrategy } from './strategies/local-strategy';
 import { RefreshJwtStrategy } from './strategies/refreshToken-strategy';
 import { UserExchange } from 'src/entities/user-exchange.entity.ts';
+import { UserGlobalParam } from 'src/entities/user-global-param.entity';
 
 @Module({
   providers: [
@@ -23,7 +24,7 @@ import { UserExchange } from 'src/entities/user-exchange.entity.ts';
   ],
   controllers: [AuthController],
   imports: [
-    TypeOrmModule.forFeature([User, UserExchange]),
+    TypeOrmModule.forFeature([User, UserExchange, UserGlobalParam]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

@@ -62,4 +62,11 @@ export class UsersController {
     const userId = req.user.id;
     return this.usersService.findUserExchangesDetails(+userId);
   }
+
+  @Post('/globalparams')
+  @UseGuards(JwtGuard)
+  async getGlobalParamsByUser(@Request() req) {
+    const userId = req.user.id;
+    return this.usersService.findUserGlobalParams(+userId);
+  }
 }
