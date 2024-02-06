@@ -1,26 +1,27 @@
+import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { CreateCmcDto } from './dto/create-cmc.dto';
-import { UpdateCmcDto } from './dto/update-cmc.dto';
+import { ConfigService } from '@nestjs/config';
+import { map } from 'rxjs/operators';
 
 @Injectable()
 export class CmcService {
-  create(createCmcDto: CreateCmcDto) {
-    return 'This action adds a new cmc';
-  }
+  constructor(
+    private httpService: HttpService,
+    private configService: ConfigService,
+  ) {}
 
-  findAll() {
-    return `This action returns all cmc`;
-  }
+  getCryptoInfo(cryptoSymbol: string) {
+    const url = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${cryptoSymbol}`;
+    const headersRequest = {
+      'X-CMC_PRO_API_KEY': this.configService.get<string>('CMC_PRO_API_KEY'),
+    };
 
-  findOne(id: number) {
-    return `This action returns a #${id} cmc`;
+    return this.httpService
+      .get(url, { headers: headersRequest })
+      .pipe(map((response) => (response as ApiResponse).data));
   }
+}
 
-  update(id: number, updateCmcDto: UpdateCmcDto) {
-    return `This action updates a #${id} cmc`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} cmc`;
-  }
+interface ApiResponse {
+  data: any;
 }
