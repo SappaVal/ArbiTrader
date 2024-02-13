@@ -11,7 +11,9 @@ import { Wallet } from './entities/wallet.entity';
 import { ExchangesModule } from './exchanges/exchanges.module';
 import { UsersModule } from './users/users.module';
 import { GlobalParamsModule } from './global-params/global-params.module';
-import { CmcModule } from './cmc/cmc.module';
+import { BinanceModule } from './binance/binance.module';
+import { HistoricalPrice } from './entities/historical-price.entity';
+import { TradingPair } from './entities/trading-pair.entity';
 
 @Module({
   imports: [
@@ -37,13 +39,15 @@ import { CmcModule } from './cmc/cmc.module';
           GlobalParam,
           UserGlobalParam,
           Wallet,
+          HistoricalPrice,
+          TradingPair,
         ],
         synchronize: true,
       }),
       inject: [ConfigService],
     }),
     GlobalParamsModule,
-    CmcModule,
+    BinanceModule,
   ],
 })
 export class AppModule {}
