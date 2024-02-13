@@ -20,44 +20,26 @@ export class BinanceService {
     private historicalPriceRepository: Repository<HistoricalPrice>,
   ) {}
 
+  private readonly baseUrl = 'https://api.binance.com/api/v3';
+
   async getHistoricalData(
     symbol: string,
     interval: string,
     startTime?: number,
     endTime?: number,
     limit?: number,
-  ): Promise<HistoricalDataDto[]> {
-    const url = 'https://api.binance.com/api/v3/klines';
-    const params = { symbol, interval, startTime, endTime, limit };
-
-    const response = await this.httpService
-      .get(url, { params })
-      .pipe(map((response) => response.data))
-      .toPromise();
-
-    const historicalDataDtos = response.map(
-      (data) =>
-        new HistoricalDataDto(
-          data[0],
-          data[1],
-          data[2],
-          data[3],
-          data[4],
-          data[5],
-          data[6],
-          data[7],
-          data[8],
-          data[9],
-          data[10],
-          data[11],
-        ),
-    );
-
-    return historicalDataDtos;
+  ): Promise<HistoricalPrice[]> {
+    const historicalDatas = await this.historicalPriceRepository.find({
+      where: { tradingPair: { symbol }, interval },
+      order: { openTime: 'DESC' },
+      take: limit,
+    });
+    return historicalDatas;
   }
 
+  @Cron(CronExpression.EVERY_DAY_AT_6PM)
   async addExchangeInfo(): Promise<TradingPairDto[]> {
-    const url = 'https://api.binance.com/api/v3/exchangeInfo';
+    const url = `${this.baseUrl}/exchangeInfo`;
 
     const response = await this.httpService.get(url).toPromise();
     const allSymbols = response.data.symbols;
@@ -99,7 +81,7 @@ export class BinanceService {
         startTime = latestHistoricalPrice.openTime;
       }
 
-      const historicalDataDtos = await this.getHistoricalData(
+      const historicalDataDtos = await this.getBinanceHistoricalData(
         tradingPair.symbol,
         interval,
         startTime,
@@ -124,5 +106,41 @@ export class BinanceService {
     }
 
     return results;
+  }
+
+  private async getBinanceHistoricalData(
+    symbol: string,
+    interval: string,
+    startTime?: number,
+    endTime?: number,
+    limit?: number,
+  ): Promise<HistoricalDataDto[]> {
+    const url = `${this.baseUrl}/klines`;
+    const params = { symbol, interval, startTime, endTime, limit };
+
+    const response = await this.httpService
+      .get(url, { params })
+      .pipe(map((response) => response.data))
+      .toPromise();
+
+    const historicalDataDtos = response.map(
+      (data) =>
+        new HistoricalDataDto(
+          data[0],
+          data[1],
+          data[2],
+          data[3],
+          data[4],
+          data[5],
+          data[6],
+          data[7],
+          data[8],
+          data[9],
+          data[10],
+          data[11],
+        ),
+    );
+
+    return historicalDataDtos;
   }
 }

@@ -3,6 +3,7 @@ import { BinanceService } from './binance.service';
 import { TradingPairDto } from './dto/trading-pair.dto';
 import { DailyCronResultDto } from './dto/daily-cron-result.dto';
 import { HistoricalDataDto } from './dto/historical-data.dto';
+import { HistoricalPrice } from 'src/entities/historical-price.entity';
 
 @Controller('binance')
 export class BinanceController {
@@ -15,7 +16,7 @@ export class BinanceController {
     @Query('startTime') startTime?: number,
     @Query('endTime') endTime?: number,
     @Query('limit') limit?: number,
-  ): Promise<HistoricalDataDto[]> {
+  ): Promise<HistoricalPrice[]> {
     return this.binanceService.getHistoricalData(
       symbol,
       interval,
