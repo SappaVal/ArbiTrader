@@ -6,10 +6,11 @@ import { HistoricalPrice } from 'src/entities/historical-price.entity';
 import { TradingPair } from 'src/entities/trading-pair.entity';
 import { BinanceController } from './binance.controller';
 import { BinanceService } from './binance.service';
+import { Exchange } from 'src/entities/exchange.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([HistoricalPrice, TradingPair]),
+    TypeOrmModule.forFeature([HistoricalPrice, TradingPair, Exchange]),
     HttpModule,
     ScheduleModule.forRoot(),
   ],

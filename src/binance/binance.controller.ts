@@ -2,7 +2,6 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { BinanceService } from './binance.service';
 import { TradingPairDto } from './dto/trading-pair.dto';
 import { DailyCronResultDto } from './dto/daily-cron-result.dto';
-import { HistoricalDataDto } from './dto/historical-data.dto';
 import { HistoricalPrice } from 'src/entities/historical-price.entity';
 
 @Controller('binance')

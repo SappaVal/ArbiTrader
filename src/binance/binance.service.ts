@@ -3,12 +3,13 @@ import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { map } from 'rxjs/operators';
-import { Repository } from 'typeorm';
-import { HistoricalDataDto } from './dto/historical-data.dto';
-import { TradingPair } from 'src/entities/trading-pair.entity';
 import { HistoricalPrice } from 'src/entities/historical-price.entity';
-import { TradingPairDto } from './dto/trading-pair.dto';
+import { TradingPair } from 'src/entities/trading-pair.entity';
+import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { DailyCronResultDto } from './dto/daily-cron-result.dto';
+import { TradingPairDto } from './dto/trading-pair.dto';
+import { lastValueFrom } from 'rxjs';
+import { Exchange } from 'src/entities/exchange.entity';
 
 @Injectable()
 export class BinanceService {
@@ -18,6 +19,8 @@ export class BinanceService {
     private tradingPairRepository: Repository<TradingPair>,
     @InjectRepository(HistoricalPrice)
     private historicalPriceRepository: Repository<HistoricalPrice>,
+    @InjectRepository(Exchange)
+    private exchangeRepository: Repository<Exchange>,
   ) {}
 
   private readonly baseUrl = 'https://api.binance.com/api/v3';
@@ -29,16 +32,37 @@ export class BinanceService {
     endTime?: number,
     limit?: number,
   ): Promise<HistoricalPrice[]> {
-    const historicalDatas = await this.historicalPriceRepository.find({
-      where: { tradingPair: { symbol }, interval },
+    const whereConditions = {
+      tradingPair: { symbol },
+      interval,
+    };
+
+    if (startTime !== undefined) {
+      whereConditions['openTime'] = MoreThanOrEqual(startTime);
+    }
+    if (endTime !== undefined) {
+      whereConditions['closeTime'] = LessThanOrEqual(endTime);
+    }
+    const queryOptions: any = {
+      where: whereConditions,
       order: { openTime: 'DESC' },
-      take: limit,
-    });
+    };
+
+    if (limit !== undefined) {
+      queryOptions.take = limit;
+    }
+
+    const historicalDatas =
+      await this.historicalPriceRepository.find(queryOptions);
+
     return historicalDatas;
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_6PM)
   async addExchangeInfo(): Promise<TradingPairDto[]> {
+    const exchange = await this.exchangeRepository.findOne({
+      where: { name: 'Binance' },
+    });
     const url = `${this.baseUrl}/exchangeInfo`;
 
     const response = await this.httpService.get(url).toPromise();
@@ -53,8 +77,9 @@ export class BinanceService {
       await this.tradingPairRepository.upsert(
         {
           symbol: dataDto.pair,
+          exchangeId: exchange.id,
         },
-        ['symbol'],
+        ['symbol', 'exchangeId'],
       );
     }
     return usdtPairs;
@@ -74,7 +99,7 @@ export class BinanceService {
       console.log('Fetching historical data for', tradingPair.symbol);
       const latestHistoricalPrice =
         await this.historicalPriceRepository.findOne({
-          where: { tradingPairId: tradingPair.id },
+          where: { tradingPair: tradingPair },
           order: { openTime: 'DESC' },
         });
       if (latestHistoricalPrice) {
@@ -97,8 +122,7 @@ export class BinanceService {
         await this.historicalPriceRepository.upsert(
           {
             ...dataDto,
-            tradingPairId: tradingPair.id,
-            interval,
+            tradingPair: tradingPair,
           },
           ['openTime', 'closeTime', 'interval', 'tradingPairId'],
         );
@@ -114,32 +138,29 @@ export class BinanceService {
     startTime?: number,
     endTime?: number,
     limit?: number,
-  ): Promise<HistoricalDataDto[]> {
+  ): Promise<HistoricalPrice[]> {
     const url = `${this.baseUrl}/klines`;
     const params = { symbol, interval, startTime, endTime, limit };
 
-    const response = await this.httpService
-      .get(url, { params })
-      .pipe(map((response) => response.data))
-      .toPromise();
-
-    const historicalDataDtos = response.map(
-      (data) =>
-        new HistoricalDataDto(
-          data[0],
-          data[1],
-          data[2],
-          data[3],
-          data[4],
-          data[5],
-          data[6],
-          data[7],
-          data[8],
-          data[9],
-          data[10],
-          data[11],
-        ),
+    const response = await lastValueFrom(
+      this.httpService
+        .get(url, { params })
+        .pipe(map((response) => response.data)),
     );
+
+    const historicalDataDtos = response.map((data) => {
+      const historicalPrice = new HistoricalPrice();
+      historicalPrice.openTime = data[0];
+      historicalPrice.open = data[1];
+      historicalPrice.high = data[2];
+      historicalPrice.low = data[3];
+      historicalPrice.close = data[4];
+      historicalPrice.volume = data[7];
+      historicalPrice.closeTime = data[6];
+      historicalPrice.interval = interval;
+
+      return historicalPrice;
+    });
 
     return historicalDataDtos;
   }

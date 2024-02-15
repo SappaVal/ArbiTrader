@@ -25,18 +25,6 @@ export class HistoricalPrice {
   @PrimaryColumn({ type: 'bigint' })
   closeTime: number;
 
-  @Column()
-  quoteAssetVolume: string;
-
-  @Column('int')
-  numberOfTrades: number;
-
-  @Column()
-  takerBuyBaseAssetVolume: string;
-
-  @Column()
-  takerBuyQuoteAssetVolume: string;
-
   @PrimaryColumn({ nullable: false })
   interval: string;
 
