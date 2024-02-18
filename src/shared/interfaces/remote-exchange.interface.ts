@@ -11,4 +11,6 @@ export interface RemoteExchangeInterface {
     endTime?: number,
     limit?: number,
   ): Promise<HistoricalPrice[]>;
+
+  getCurrentPrice(symbol: string): Promise<number>;
 }

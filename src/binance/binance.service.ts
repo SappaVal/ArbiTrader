@@ -66,4 +66,13 @@ export class BinanceService implements RemoteExchangeInterface {
 
     return historicalDataDtos;
   }
+
+  public async getCurrentPrice(symbol: string): Promise<number> {
+    const url = `${this.baseUrl}/ticker/price?symbol=${symbol}`;
+    const response = await lastValueFrom(
+      this.httpService.get(url).pipe(map((response) => response.data)),
+    );
+
+    return response.price;
+  }
 }

@@ -15,6 +15,7 @@ import { BinanceModule } from './binance/binance.module';
 import { HistoricalPrice } from './entities/historical-price.entity';
 import { TradingPair } from './entities/trading-pair.entity';
 import { BybitModule } from './bybit/bybit.module';
+import { CryptoPriceAggregatorModule } from './crypto-price-aggregator/crypto-price-aggregator.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { BybitModule } from './bybit/bybit.module';
     GlobalParamsModule,
     BinanceModule,
     BybitModule,
+    CryptoPriceAggregatorModule,
   ],
 })
 export class AppModule {}
