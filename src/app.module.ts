@@ -14,6 +14,7 @@ import { GlobalParamsModule } from './global-params/global-params.module';
 import { BinanceModule } from './binance/binance.module';
 import { HistoricalPrice } from './entities/historical-price.entity';
 import { TradingPair } from './entities/trading-pair.entity';
+import { BybitModule } from './bybit/bybit.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { TradingPair } from './entities/trading-pair.entity';
     }),
     GlobalParamsModule,
     BinanceModule,
+    BybitModule,
   ],
 })
 export class AppModule {}

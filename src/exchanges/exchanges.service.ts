@@ -5,15 +5,18 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Exchange } from 'src/entities/exchange.entity';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { CreateExchangeDto } from './dto/create-exchange.dto';
 import { UpdateExchangeDto } from './dto/update-exchange.dto';
+import { HistoricalPrice } from 'src/entities/historical-price.entity';
 
 @Injectable()
 export class ExchangesService {
   constructor(
     @InjectRepository(Exchange)
     private exchangeRepository: Repository<Exchange>,
+    @InjectRepository(HistoricalPrice)
+    private historicalPriceRepository: Repository<HistoricalPrice>,
   ) {}
 
   async findAll(): Promise<Exchange[]> {
@@ -52,9 +55,37 @@ export class ExchangesService {
     return await this.findOne(id);
   }
 
-  async remove(id: number): Promise<Exchange> {
-    const removedExchange = await this.findOne(id);
-    await this.exchangeRepository.delete(id);
-    return removedExchange;
+  async getHistoricalData(
+    exchangeName: string,
+    symbol: string,
+    interval: string,
+    startTime?: number,
+    endTime?: number,
+    limit?: number,
+  ): Promise<HistoricalPrice[]> {
+    const whereConditions = {
+      tradingPair: { symbol, exchange: { name: exchangeName } },
+      interval,
+    };
+
+    if (startTime !== undefined) {
+      whereConditions['openTime'] = MoreThanOrEqual(startTime);
+    }
+    if (endTime !== undefined) {
+      whereConditions['closeTime'] = LessThanOrEqual(endTime);
+    }
+    const queryOptions: any = {
+      where: whereConditions,
+      order: { openTime: 'DESC' },
+    };
+
+    if (limit !== undefined) {
+      queryOptions.take = limit;
+    }
+
+    const historicalDatas =
+      await this.historicalPriceRepository.find(queryOptions);
+
+    return historicalDatas;
   }
 }

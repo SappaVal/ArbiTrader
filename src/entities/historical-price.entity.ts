@@ -1,4 +1,11 @@
-import { Column, Entity, Index, ManyToOne, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  ManyToOne,
+  PrimaryColumn,
+  JoinColumn,
+} from 'typeorm';
 import { TradingPair } from './trading-pair.entity';
 
 @Index(['tradingPairId', 'interval', 'openTime', 'closeTime'], { unique: true })
@@ -28,7 +35,8 @@ export class HistoricalPrice {
   @PrimaryColumn({ nullable: false })
   interval: string;
 
-  @ManyToOne(() => TradingPair)
+  @ManyToOne(() => TradingPair, (tradingPair) => tradingPair.historicalPrices)
+  @JoinColumn({ name: 'tradingPairId' })
   tradingPair: TradingPair;
 
   @PrimaryColumn({ nullable: false })

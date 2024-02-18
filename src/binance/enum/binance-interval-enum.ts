@@ -1,0 +1,15 @@
+export enum BinanceIntervalEnum {
+  ONE_MINUTE = '1m',
+  THREE_MINUTE = '3m',
+  FIVE_MINUTE = '5m',
+  FIFTEEN_MINUTE = '15m',
+  THIRTY_MINUTE = '30m',
+  ONE_HOUR = '1h',
+  TWO_HOUR = '2h',
+  FOUR_HOUR = '4h',
+  SIX_HOUR = '6h',
+  TWELVE_HOUR = '12h',
+  DAILY = '1d',
+  WEEKLY = '1w',
+  MONTHLY = '1M',
+}
