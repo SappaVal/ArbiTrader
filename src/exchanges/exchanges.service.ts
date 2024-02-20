@@ -1,14 +1,8 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Exchange } from 'src/entities/exchange.entity';
-import { Repository, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
-import { CreateExchangeDto } from './dto/create-exchange.dto';
-import { UpdateExchangeDto } from './dto/update-exchange.dto';
 import { HistoricalPrice } from 'src/entities/historical-price.entity';
+import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 
 @Injectable()
 export class ExchangesService {
@@ -18,42 +12,6 @@ export class ExchangesService {
     @InjectRepository(HistoricalPrice)
     private historicalPriceRepository: Repository<HistoricalPrice>,
   ) {}
-
-  async findAll(): Promise<Exchange[]> {
-    return await this.exchangeRepository.find();
-  }
-
-  async findOne(id: number): Promise<Exchange> {
-    const exchange = await this.exchangeRepository.findOne({ where: { id } });
-
-    if (!exchange) {
-      throw new NotFoundException(`Exchange with id ${id} not found`);
-    }
-
-    return exchange;
-  }
-
-  async create(createExchangeDto: CreateExchangeDto): Promise<Exchange> {
-    const existingExchange = await this.exchangeRepository.findOne({
-      where: [{ name: createExchangeDto.name }],
-    });
-
-    if (existingExchange) {
-      throw new ConflictException('Exchange already exists');
-    }
-
-    const newExchange = this.exchangeRepository.create(createExchangeDto);
-    return await this.exchangeRepository.save(newExchange);
-  }
-
-  async update(
-    id: number,
-    updateExchangeDto: UpdateExchangeDto,
-  ): Promise<Exchange> {
-    const exchange = await this.findOne(id);
-    await this.exchangeRepository.update(id, updateExchangeDto);
-    return await this.findOne(id);
-  }
 
   async getHistoricalData(
     exchangeName: string,
@@ -87,5 +45,17 @@ export class ExchangesService {
       await this.historicalPriceRepository.find(queryOptions);
 
     return historicalDatas;
+  }
+
+  async getPairByExchange(exchangeName: string): Promise<string[]> {
+    const exchange = await this.exchangeRepository.findOne({
+      where: { name: exchangeName.toLowerCase() },
+      relations: ['tradingPair'],
+    });
+    if (!exchange) {
+      throw new NotFoundException('Exchange not found');
+    }
+
+    return exchange.tradingPair.map((pair) => pair.symbol);
   }
 }

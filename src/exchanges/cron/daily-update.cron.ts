@@ -27,7 +27,7 @@ export class DailyUpdateCronService {
     private binanceService: BinanceService,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_1PM)
+  @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async handleDailyCron(): Promise<DailyCronResultDto[]> {
     const results: DailyCronResultDto[] = [];
     const bybitResults = await this.handleDailyCronByExchange('bybit');
@@ -101,7 +101,9 @@ export class DailyUpdateCronService {
       where: { exchange: { name: exchangeName } },
     });
 
-    this.logger.debug('Trading pairs for: ', exchangeName, tradingPairs.length);
+    this.logger.debug(
+      'Trading pairs for: ' + exchangeName + tradingPairs.length,
+    );
 
     const historicalDataPromises = tradingPairs.map(async (tradingPair) => {
       let limit = 1000;

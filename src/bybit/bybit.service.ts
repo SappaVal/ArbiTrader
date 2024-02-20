@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { HistoricalPrice } from 'src/entities/historical-price.entity';
+import { DailyPriceResultDto } from 'src/shared/dto/daily-price-result.dto';
 import { TradingPairDto } from 'src/shared/dto/trading-pair.dto';
 import { RemoteExchangeInterface } from 'src/shared/interfaces/remote-exchange.interface';
 import { convertToDatabaseInterval } from 'src/shared/utils/interval-converter.util';
@@ -59,11 +60,21 @@ export class BybitService implements RemoteExchangeInterface {
     });
   }
 
-  public async getCurrentPrice(symbol: string): Promise<number> {
-    const url = `${this.baseUrl}/ticker/price?symbol=${symbol}`;
-    const response = await lastValueFrom(
-      this.httpService.get(url).pipe(map((response) => response.data)),
-    );
-    return response.result.price;
+  public async getCurrentPrices(
+    symbols: string[],
+  ): Promise<DailyPriceResultDto[]> {
+    const allPrices = symbols.map(async (symbol) => {
+      const url = `${this.baseUrl}/tickers?category=spot&symbol=${symbol}`;
+      const response = await lastValueFrom(
+        this.httpService.get(url).pipe(map((response) => response.data)),
+      );
+
+      return {
+        symbol: symbol,
+        volume: Number(response.result.list[0].turnover24h),
+        price: Number(response.result.list[0].lastPrice),
+      } as DailyPriceResultDto;
+    });
+    return await Promise.all(allPrices);
   }
 }

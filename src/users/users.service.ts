@@ -5,14 +5,14 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserExchange } from 'src/entities/user-exchange.entity.ts';
+import { UserGlobalParam } from 'src/entities/user-global-param.entity';
+import { encodePassword } from 'src/shared/utils/bcrypt';
 import { Repository } from 'typeorm';
 import { UserRole } from '../entities/enum/user-role.enum';
 import { User } from '../entities/user.entity';
-import { encodePassword } from '../utils/bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserExchangeDetailsDTO } from './dto/user-exchange-details.dto';
-import { UserGlobalParam } from 'src/entities/user-global-param.entity';
 
 @Injectable()
 export class UsersService {

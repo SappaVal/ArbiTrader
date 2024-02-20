@@ -1,18 +1,12 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
 import { lastValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { Exchange } from 'src/entities/exchange.entity';
 import { HistoricalPrice } from 'src/entities/historical-price.entity';
-import { TradingPair } from 'src/entities/trading-pair.entity';
-import { convertToDatabaseInterval } from 'src/shared/utils/interval-converter.util';
-import { Repository } from 'typeorm';
-import { DailyCronResultDto } from '../shared/dto/daily-cron-result.dto';
-import { TradingPairDto } from '../shared/dto/trading-pair.dto';
-import { BinanceIntervalEnum } from './enum/binance-interval-enum';
+import { DailyPriceResultDto } from 'src/shared/dto/daily-price-result.dto';
 import { RemoteExchangeInterface } from 'src/shared/interfaces/remote-exchange.interface';
+import { convertToDatabaseInterval } from 'src/shared/utils/interval-converter.util';
+import { TradingPairDto } from '../shared/dto/trading-pair.dto';
 
 @Injectable()
 export class BinanceService implements RemoteExchangeInterface {
@@ -67,12 +61,36 @@ export class BinanceService implements RemoteExchangeInterface {
     return historicalDataDtos;
   }
 
-  public async getCurrentPrice(symbol: string): Promise<number> {
-    const url = `${this.baseUrl}/ticker/price?symbol=${symbol}`;
-    const response = await lastValueFrom(
-      this.httpService.get(url).pipe(map((response) => response.data)),
-    );
+  public async getCurrentPrices(
+    symbols: string[],
+  ): Promise<DailyPriceResultDto[]> {
+    const batchSize = 30;
+    const symbolBatches = [];
 
-    return response.price;
+    for (let i = 0; i < symbols.length; i += batchSize) {
+      const symbolBatch = symbols.slice(i, i + batchSize);
+      symbolBatches.push(symbolBatch);
+    }
+
+    const requests = symbolBatches.map(async (symbolBatch) => {
+      const formattedSymbols = encodeURIComponent(JSON.stringify(symbolBatch));
+      const url = `${this.baseUrl}/ticker/24hr?symbols=${formattedSymbols}&type=MINI`;
+
+      const response = await lastValueFrom(
+        this.httpService.get(url).pipe(map((response) => response.data)),
+      );
+
+      return response.map(
+        (data) =>
+          ({
+            symbol: data.symbol,
+            volume: Number(data.quoteVolume),
+            price: Number(data.lastPrice),
+          }) as DailyPriceResultDto,
+      );
+    });
+
+    const results = await Promise.all(requests);
+    return [].concat(...results);
   }
 }

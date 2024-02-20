@@ -42,6 +42,11 @@ export class ExchangesController {
     );
   }
 
+  @Get('pair/:exchange')
+  getPairByExchange(@Param('exchange') exchange: string): Promise<string[]> {
+    return this.exchangesService.getPairByExchange(exchange);
+  }
+
   @Get('launch-manual-history-cron')
   launchManualCron(): Promise<DailyCronResultDto[]> {
     return this.dailyCronUpdateService.handleDailyCron();
@@ -50,28 +55,5 @@ export class ExchangesController {
   @Get('launch-manual-pairs-cron')
   launchManualPairsCron(): Promise<TradingPairDto[]> {
     return this.dailyCronUpdateService.handleTradingPairInfo();
-  }
-
-  @Post()
-  create(@Body() createExchangeDto: CreateExchangeDto) {
-    return this.exchangesService.create(createExchangeDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.exchangesService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.exchangesService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateExchangeDto: UpdateExchangeDto,
-  ) {
-    return this.exchangesService.update(id, updateExchangeDto);
   }
 }

@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { UsersService } from 'src/users/users.service';
-import { comparePassword } from '../utils/bcrypt';
-import { User } from 'src/entities/user.entity';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserPayload } from 'src/auth/dto/user-payload';
+import { User } from 'src/entities/user.entity';
+import { comparePassword } from 'src/shared/utils/bcrypt';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class AuthService {
