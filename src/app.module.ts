@@ -1,26 +1,20 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthModule } from './auth/auth.module';
-import { Exchange } from './entities/exchange.entity';
-import { GlobalParam } from './entities/global-param.entity';
-import { UserExchange } from './entities/user-exchange.entity.ts';
-import { UserGlobalParam } from './entities/user-global-param.entity';
-import { User } from './entities/user.entity';
-import { Wallet } from './entities/wallet.entity';
-import { ExchangesModule } from './exchanges/exchanges.module';
-import { UsersModule } from './users/users.module';
-import { GlobalParamsModule } from './global-params/global-params.module';
 import { BinanceModule } from './binance/binance.module';
-import { HistoricalPrice } from './entities/historical-price.entity';
-import { TradingPair } from './entities/trading-pair.entity';
 import { BybitModule } from './bybit/bybit.module';
 import { CryptoPriceAggregatorModule } from './crypto-price-aggregator/crypto-price-aggregator.module';
+import { Exchange } from './entities/exchange.entity';
+import { HistoricalPrice } from './entities/historical-price.entity';
+import { TokenInfos } from './entities/token-infos.entity';
+import { TradingPair } from './entities/trading-pair.entity';
+import { User } from './entities/user.entity';
+import { ExchangesModule } from './exchanges/exchanges.module';
+import { TokenInfosModule } from './token-infos/token-infos.module';
+import { Blockchain } from './entities/blockchain.entity';
 
 @Module({
   imports: [
-    UsersModule,
-    AuthModule,
     ExchangesModule,
     ConfigModule.forRoot({
       envFilePath: '.env',
@@ -37,21 +31,19 @@ import { CryptoPriceAggregatorModule } from './crypto-price-aggregator/crypto-pr
         entities: [
           User,
           Exchange,
-          UserExchange,
-          GlobalParam,
-          UserGlobalParam,
-          Wallet,
           HistoricalPrice,
           TradingPair,
+          TokenInfos,
+          Blockchain,
         ],
         synchronize: true,
       }),
       inject: [ConfigService],
     }),
-    GlobalParamsModule,
     BinanceModule,
     BybitModule,
     CryptoPriceAggregatorModule,
+    TokenInfosModule,
   ],
 })
 export class AppModule {}

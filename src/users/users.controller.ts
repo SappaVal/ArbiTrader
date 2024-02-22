@@ -55,18 +55,4 @@ export class UsersController {
     }
     return await this.usersService.remove(id);
   }
-
-  @Post('/exchanges')
-  @UseGuards(JwtGuard)
-  async getExchangesByUser(@Request() req): Promise<UserExchangeDetailsDTO[]> {
-    const userId = req.user.id;
-    return this.usersService.findUserExchangesDetails(+userId);
-  }
-
-  @Post('/globalparams')
-  @UseGuards(JwtGuard)
-  async getGlobalParamsByUser(@Request() req) {
-    const userId = req.user.id;
-    return this.usersService.findUserGlobalParams(+userId);
-  }
 }

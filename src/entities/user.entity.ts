@@ -1,8 +1,6 @@
-import { Entity, Column, OneToMany, CreateDateColumn } from 'typeorm';
-import { BaseTable } from './base/base.table';
-import { UserExchange } from './user-exchange.entity.ts';
-import { UserGlobalParam } from './user-global-param.entity';
 import { UserRole } from 'src/entities/enum/user-role.enum';
+import { Column, CreateDateColumn, Entity } from 'typeorm';
+import { BaseTable } from './base/base.table';
 
 @Entity()
 export class User extends BaseTable {
@@ -21,10 +19,4 @@ export class User extends BaseTable {
   @Column()
   @CreateDateColumn()
   lastLoginDate: Date;
-
-  @OneToMany(() => UserExchange, (userExchange) => userExchange.user)
-  exchanges: UserExchange[];
-
-  @OneToMany(() => UserGlobalParam, (userGlobalParam) => userGlobalParam.user)
-  globalParams: UserGlobalParam[];
 }

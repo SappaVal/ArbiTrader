@@ -4,8 +4,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserExchange } from 'src/entities/user-exchange.entity.ts';
-import { UserGlobalParam } from 'src/entities/user-global-param.entity';
 import { encodePassword } from 'src/shared/utils/bcrypt';
 import { Repository } from 'typeorm';
 import { UserRole } from '../entities/enum/user-role.enum';
@@ -18,10 +16,6 @@ import { UserExchangeDetailsDTO } from './dto/user-exchange-details.dto';
 export class UsersService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
-    @InjectRepository(UserExchange)
-    private userExchangeRepository: Repository<UserExchange>,
-    @InjectRepository(UserGlobalParam)
-    private userGlobalParamRepository: Repository<UserGlobalParam>,
   ) {}
 
   async findAll(role?: UserRole): Promise<User[]> {
@@ -85,43 +79,5 @@ export class UsersService {
     const removedUser = this.findOne(id);
     await this.userRepository.delete(id);
     return removedUser;
-  }
-
-  async findExchangesByUserId(userId: number) {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['exchanges'],
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with id ${userId} not found`);
-    }
-
-    return user.exchanges;
-  }
-
-  async findUserExchangesDetails(
-    userId: number,
-  ): Promise<UserExchangeDetailsDTO[]> {
-    return this.userExchangeRepository
-      .createQueryBuilder('ue')
-      .select([
-        'ue.id as id',
-        'ue.updatedAt as updatedAt',
-        'e.id as exchangeId',
-        'e.name AS exchangeName',
-        'ue.apiKey as apiKey',
-      ])
-      .innerJoin('ue.user', 'u', 'u.id = :userId', { userId })
-      .innerJoin('ue.exchange', 'e')
-      .getRawMany();
-  }
-
-  async findUserGlobalParams(userId: number) {
-    return this.userGlobalParamRepository
-      .createQueryBuilder('ugp')
-      .select(['ugp.id as id', 'ugp.updatedAt as updatedAt', 'ugp.value'])
-      .innerJoin('ugp.user', 'u', 'u.id = :userId', { userId })
-      .getRawMany();
   }
 }
