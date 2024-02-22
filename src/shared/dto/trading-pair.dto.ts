@@ -1,3 +1,3 @@
-export class TradingPairDto {
+export class RequestTradingPairDto {
   pair: string;
 }

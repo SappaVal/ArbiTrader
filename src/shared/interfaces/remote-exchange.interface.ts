@@ -1,9 +1,9 @@
 import { HistoricalPrice } from 'src/entities/historical-price.entity';
-import { TradingPairDto } from '../dto/trading-pair.dto';
+import { RequestTradingPairDto } from '../dto/trading-pair.dto';
 import { DailyPriceResultDto } from '../dto/daily-price-result.dto';
 
 export interface RemoteExchangeInterface {
-  getTradingPairInfo(): Promise<TradingPairDto[]>;
+  getTradingPairInfo(): Promise<RequestTradingPairDto[]>;
 
   getHistoricalData(
     symbol: string,

@@ -9,6 +9,6 @@ export class CryptoPriceAggregatorController {
 
   @Get()
   async getCurrentPrice() {
-    return await this.cryptoPriceAggregatorService.getCurrentPrice();
+    return await this.cryptoPriceAggregatorService.getCurrentPriceFromCache();
   }
 }

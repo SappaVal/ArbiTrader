@@ -6,7 +6,7 @@ import { HistoricalPrice } from 'src/entities/historical-price.entity';
 import { DailyPriceResultDto } from 'src/shared/dto/daily-price-result.dto';
 import { RemoteExchangeInterface } from 'src/shared/interfaces/remote-exchange.interface';
 import { convertToDatabaseInterval } from 'src/shared/utils/interval-converter.util';
-import { TradingPairDto } from '../shared/dto/trading-pair.dto';
+import { RequestTradingPairDto } from '../shared/dto/trading-pair.dto';
 
 @Injectable()
 export class BinanceService implements RemoteExchangeInterface {
@@ -14,15 +14,15 @@ export class BinanceService implements RemoteExchangeInterface {
 
   private readonly baseUrl = 'https://api.binance.com/api/v3';
 
-  public async getTradingPairInfo(): Promise<TradingPairDto[]> {
+  public async getTradingPairInfo(): Promise<RequestTradingPairDto[]> {
     const url = `${this.baseUrl}/exchangeInfo`;
 
     const response = await this.httpService.get(url).toPromise();
     const allSymbols = response.data.symbols;
-    const usdtPairs: TradingPairDto[] = allSymbols
+    const usdtPairs: RequestTradingPairDto[] = allSymbols
       .filter((info) => info.symbol.endsWith('USDT'))
       .map((symbol) => {
-        return { pair: symbol.symbol } as TradingPairDto;
+        return { pair: symbol.symbol } as RequestTradingPairDto;
       });
 
     return usdtPairs;
@@ -64,7 +64,7 @@ export class BinanceService implements RemoteExchangeInterface {
   public async getCurrentPrices(
     symbols: string[],
   ): Promise<DailyPriceResultDto[]> {
-    const batchSize = 30;
+    const batchSize = 60;
     const symbolBatches = [];
 
     for (let i = 0; i < symbols.length; i += batchSize) {

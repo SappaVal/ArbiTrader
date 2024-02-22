@@ -9,8 +9,10 @@ import { TradingPair } from 'src/entities/trading-pair.entity';
 import { DailyCronResultDto } from 'src/shared/dto/daily-cron-result.dto';
 import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { TradingPairDto } from 'src/shared/dto/trading-pair.dto';
+import { RequestTradingPairDto } from 'src/shared/dto/trading-pair.dto';
 import { Exchange } from 'src/entities/exchange.entity';
+import { TradingPairResultInfoDto } from '../dto/trading-pair-result-info.dto';
+import { ExchangesService } from '../exchanges.service';
 
 @Injectable()
 export class DailyUpdateCronService {
@@ -25,10 +27,11 @@ export class DailyUpdateCronService {
     private exchangeRepository: Repository<Exchange>,
     private bybitService: BybitService,
     private binanceService: BinanceService,
+    private exchangesService: ExchangesService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
-  async handleDailyCron(): Promise<DailyCronResultDto[]> {
+  async handleHistoricalDataCron(): Promise<DailyCronResultDto[]> {
     const results: DailyCronResultDto[] = [];
     const bybitResults = await this.handleDailyCronByExchange('bybit');
     const binanceResults = await this.handleDailyCronByExchange('binance');
@@ -40,21 +43,47 @@ export class DailyUpdateCronService {
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
-  async handleTradingPairInfo(): Promise<TradingPairDto[]> {
-    const results: TradingPairDto[] = [];
+  async handleTradingPairInfoCron(): Promise<TradingPairResultInfoDto> {
     const bybitResults = await this.handleTradingPairInfoByExchange('bybit');
+    await this.RemoveOldPairs(bybitResults, 'bybit');
+
     const binanceResults =
       await this.handleTradingPairInfoByExchange('binance');
+    await this.RemoveOldPairs(binanceResults, 'binance');
 
-    results.push(...bybitResults);
-    results.push(...binanceResults);
+    return {
+      bybit: { results: bybitResults, length: bybitResults.length },
+      binance: { results: binanceResults, length: binanceResults.length },
+    };
+  }
 
-    return results;
+  private async RemoveOldPairs(
+    exchangeResult: RequestTradingPairDto[],
+    exchangeName: string,
+  ) {
+    const exchangePairs = exchangeResult.map((result) => result.pair);
+    const bybitPairsPostgres =
+      await this.exchangesService.getPairByExchange(exchangeName);
+
+    const extraElements = bybitPairsPostgres.filter(
+      (item) => !exchangePairs.includes(item),
+    );
+
+    if (extraElements.length > 0) {
+      console.log(
+        'Extra elements in internal database for' +
+          exchangeName +
+          ': ' +
+          extraElements,
+      );
+    }
+
+    // TODO mettre id a 0 dans la table trading pair avec comme symbol le symbole trouvé et l'id de l'exchange
   }
 
   private async handleTradingPairInfoByExchange(
     exchangeName: string,
-  ): Promise<TradingPairDto[]> {
+  ): Promise<RequestTradingPairDto[]> {
     exchangeName = exchangeName.toLowerCase();
     this.logger.debug('Getting trading pairs for exchange : ' + exchangeName);
     const exchange = await this.exchangeRepository.findOne({
@@ -78,7 +107,7 @@ export class DailyUpdateCronService {
 
   private async getTradingPairInfoByExchange(
     exchangeName: string,
-  ): Promise<TradingPairDto[]> {
+  ): Promise<RequestTradingPairDto[]> {
     if (exchangeName === 'bybit') {
       return this.bybitService.getTradingPairInfo();
     } else if (exchangeName === 'binance') {
@@ -102,7 +131,7 @@ export class DailyUpdateCronService {
     });
 
     this.logger.debug(
-      'Trading pairs for: ' + exchangeName + tradingPairs.length,
+      'Trading pairs for: ' + exchangeName + ' ' + tradingPairs.length,
     );
 
     const historicalDataPromises = tradingPairs.map(async (tradingPair) => {
@@ -126,13 +155,6 @@ export class DailyUpdateCronService {
         limit,
       );
 
-      this.logger.debug(
-        'Historical data for: ' +
-          tradingPair.symbol +
-          ', length :' +
-          historicalDataDtos.length,
-      );
-
       const upsertPromises = historicalDataDtos.map(async (dataDto) =>
         this.historicalPriceRepository.upsert(
           {
@@ -152,7 +174,7 @@ export class DailyUpdateCronService {
 
     const allResults = await Promise.all(historicalDataPromises);
     results.push(...allResults);
-    console.log('Daily Cron job finished for exchange : ' + exchangeName);
+    this.logger.debug('Daily Cron job finished for exchange : ' + exchangeName);
 
     return results;
   }

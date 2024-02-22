@@ -1,21 +1,9 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
-import { CreateExchangeDto } from './dto/create-exchange.dto';
-import { UpdateExchangeDto } from './dto/update-exchange.dto';
-import { ExchangesService } from './exchanges.service';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { HistoricalPrice } from 'src/entities/historical-price.entity';
-import { DailyUpdateCronService } from './cron/daily-update.cron';
 import { DailyCronResultDto } from 'src/shared/dto/daily-cron-result.dto';
-import { TradingPairDto } from 'src/shared/dto/trading-pair.dto';
+import { DailyUpdateCronService } from './cron/daily-update.cron';
+import { TradingPairResultInfoDto } from './dto/trading-pair-result-info.dto';
+import { ExchangesService } from './exchanges.service';
 
 @Controller('exchanges')
 export class ExchangesController {
@@ -49,11 +37,11 @@ export class ExchangesController {
 
   @Get('launch-manual-history-cron')
   launchManualCron(): Promise<DailyCronResultDto[]> {
-    return this.dailyCronUpdateService.handleDailyCron();
+    return this.dailyCronUpdateService.handleHistoricalDataCron();
   }
 
   @Get('launch-manual-pairs-cron')
-  launchManualPairsCron(): Promise<TradingPairDto[]> {
-    return this.dailyCronUpdateService.handleTradingPairInfo();
+  launchManualPairsCron(): Promise<TradingPairResultInfoDto> {
+    return this.dailyCronUpdateService.handleTradingPairInfoCron();
   }
 }
