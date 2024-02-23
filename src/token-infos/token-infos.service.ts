@@ -1,10 +1,15 @@
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
 import { ethers } from 'ethers';
+import { lastValueFrom, map } from 'rxjs';
+import { Blockchain } from 'src/entities/blockchain.entity';
+import { Repository } from 'typeorm';
 import { CreateTokenInfoDto } from './dto/create-token-info.dto';
 import { UpdateTokenInfoDto } from './dto/update-token-info.dto';
-import { lastValueFrom, map } from 'rxjs';
+import { TokenInfos } from 'src/entities/token-infos.entity';
+import e from 'express';
 
 @Injectable()
 export class TokenInfosService {
@@ -17,6 +22,8 @@ export class TokenInfosService {
     @Inject(ConfigService)
     private readonly configService: ConfigService,
     private httpService: HttpService,
+    @InjectRepository(TokenInfos)
+    private tokenInfosRepository: Repository<TokenInfos>,
   ) {
     this.etherScanBaseUrl +=
       '&apikey=' + configService.get<string>('ETHERSCAN_API_KEY');
@@ -33,20 +40,24 @@ export class TokenInfosService {
     }
 
     const contractABI = await this.getABI(contractAddress);
-    if (!contractABI) {
-      throw new BadRequestException('Unable to retrieve ABI from contract');
-    }
 
-    const totalSupply = await this.getTotalSupply(contractAddress, contractABI);
+    const erc20Contract = new ethers.Contract(
+      contractAddress,
+      contractABI,
+      this.ethersProvider,
+    );
 
-    if (!totalSupply) {
-      throw new BadRequestException('Unable to retrieve total supply');
-    }
+    const totalSupply = await this.getTotalSupply(erc20Contract);
 
-    return {
+    const tokenInfo = this.tokenInfosRepository.create({
       contractAddress: contractAddress,
+      name: await this.getContractData(() => erc20Contract.name()),
+      symbol: await this.getContractData(() => erc20Contract.symbol()),
       totalSupply: totalSupply,
-    };
+      abiJson: contractABI,
+    });
+
+    return this.tokenInfosRepository.save(tokenInfo);
   }
 
   private isValidEthAddress(address: string): boolean {
@@ -54,39 +65,38 @@ export class TokenInfosService {
   }
 
   private async getABI(contractAddress: string): Promise<any | null> {
-    console.log(
-      'contractAddress',
-      this.etherScanBaseUrl + `&address=${contractAddress}`,
-    );
     const response = await lastValueFrom(
       this.httpService
         .get(this.etherScanBaseUrl + `&address=${contractAddress}`)
         .pipe(map((response) => response.data)),
     );
 
-    if (response?.data?.status === '1' && response?.data?.message === 'OK') {
-      return JSON.parse(response.data.result);
+    if (response?.status === '1' && response?.message === 'OK') {
+      return JSON.parse(response.result);
     }
 
-    return null;
+    throw new BadRequestException('Unable to retrieve ABI from contract');
   }
 
-  async getTotalSupply(
-    contractAddress: string,
-    contractABI: any,
-  ): Promise<string | null> {
-    const erc20Contract = new ethers.Contract(
-      contractAddress,
-      contractABI,
-      this.ethersProvider,
-    );
-
-    const totalSupplyWei = await erc20Contract.totalSupply();
+  async getTotalSupply(etherContract: ethers.Contract): Promise<string | null> {
+    const totalSupplyWei = await etherContract.totalSupply();
 
     if (totalSupplyWei !== undefined && totalSupplyWei !== null) {
       return ethers.formatUnits(totalSupplyWei, 'ether');
     }
-    return null;
+    throw new BadRequestException('Unable to retrieve total supply');
+  }
+
+  async getContractData<T>(
+    getDataFunction: () => Promise<T | null>,
+  ): Promise<T | null> {
+    try {
+      return await getDataFunction();
+    } catch (error) {
+      throw new BadRequestException(
+        'Unable to retrieve contract data. ' + error,
+      );
+    }
   }
 
   findAll() {
