@@ -18,6 +18,7 @@ import { Blockchain } from './entities/blockchain.entity';
     ExchangesModule,
     ConfigModule.forRoot({
       envFilePath: '.env',
+      isGlobal: true,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

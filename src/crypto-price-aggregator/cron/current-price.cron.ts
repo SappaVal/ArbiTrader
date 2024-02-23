@@ -48,7 +48,7 @@ export class CurrentPriceCronService {
     await this.cacheManager.set('cryptoPrices', weightedAveragePrices, 30000);
   }
 
-  @Cron('*/30 * * * * *')
+  //@Cron('*/30 * * * * *')
   async handleCron() {
     console.log('Updating crypto prices');
     await this.updateCurrentPriceCache();

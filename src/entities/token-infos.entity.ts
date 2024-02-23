@@ -16,4 +16,7 @@ export class TokenInfos {
 
   @Column()
   totalSupply: string;
+
+  @Column()
+  abiJson: string;
 }
