@@ -1,15 +1,18 @@
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  BadRequestException,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ethers } from 'ethers';
+import { decodeBytes32String, ethers } from 'ethers';
 import { lastValueFrom, map } from 'rxjs';
-import { Blockchain } from 'src/entities/blockchain.entity';
+import { TokenInfos } from 'src/entities/token-infos.entity';
 import { Repository } from 'typeorm';
 import { CreateTokenInfoDto } from './dto/create-token-info.dto';
 import { UpdateTokenInfoDto } from './dto/update-token-info.dto';
-import { TokenInfos } from 'src/entities/token-infos.entity';
-import e from 'express';
 
 @Injectable()
 export class TokenInfosService {
@@ -35,6 +38,13 @@ export class TokenInfosService {
   async create(createTokenInfoDto: CreateTokenInfoDto) {
     const contractAddress = createTokenInfoDto.contractAddress;
 
+    if (
+      (await this.tokenInfosRepository.count({ where: { contractAddress } })) >
+      0
+    ) {
+      throw new ConflictException('Token already exists');
+    }
+
     if (!this.isValidEthAddress(contractAddress)) {
       throw new BadRequestException('Invalid address');
     }
@@ -47,17 +57,47 @@ export class TokenInfosService {
       this.ethersProvider,
     );
 
-    const totalSupply = await this.getTotalSupply(erc20Contract);
-
     const tokenInfo = this.tokenInfosRepository.create({
       contractAddress: contractAddress,
-      name: await this.getContractData(() => erc20Contract.name()),
-      symbol: await this.getContractData(() => erc20Contract.symbol()),
-      totalSupply: totalSupply,
+      name: await this.getContractProperty(erc20Contract, 'name'),
+      symbol: await this.getContractProperty(erc20Contract, 'symbol'),
+      totalSupply: await this.getTotalSupply(erc20Contract),
       abiJson: contractABI,
     });
 
     return this.tokenInfosRepository.save(tokenInfo);
+  }
+
+  async getContractProperty(
+    contract: ethers.Contract,
+    propertyName: string,
+  ): Promise<string | null> {
+    try {
+      const propertyFunctionAbi = contract.interface.getFunction(propertyName);
+
+      if (propertyFunctionAbi == null)
+        throw new Error(`No ${propertyName} function found in the contract`);
+
+      const outputType = propertyFunctionAbi.outputs[0].type;
+      const propertyResult = await (contract[propertyName] as Function)();
+
+      let convertedResult: string | null;
+
+      if (outputType === 'string') {
+        convertedResult = propertyResult;
+      } else if (outputType === 'bytes32') {
+        convertedResult = decodeBytes32String(propertyResult);
+      } else {
+        throw new Error(
+          `Unsupported output type for ${propertyName}: ${outputType}`,
+        );
+      }
+      return convertedResult;
+    } catch (error) {
+      throw new BadRequestException(
+        `Unable to retrieve ${propertyName} from contract. ${error}`,
+      );
+    }
   }
 
   private isValidEthAddress(address: string): boolean {
@@ -80,23 +120,15 @@ export class TokenInfosService {
 
   async getTotalSupply(etherContract: ethers.Contract): Promise<string | null> {
     const totalSupplyWei = await etherContract.totalSupply();
+    const decimals = await etherContract.decimals();
 
-    if (totalSupplyWei !== undefined && totalSupplyWei !== null) {
-      return ethers.formatUnits(totalSupplyWei, 'ether');
+    const totalSupplyFormatted = ethers.formatUnits(totalSupplyWei, decimals);
+
+    if (totalSupplyFormatted !== undefined && totalSupplyFormatted !== null) {
+      return totalSupplyFormatted;
     }
+
     throw new BadRequestException('Unable to retrieve total supply');
-  }
-
-  async getContractData<T>(
-    getDataFunction: () => Promise<T | null>,
-  ): Promise<T | null> {
-    try {
-      return await getDataFunction();
-    } catch (error) {
-      throw new BadRequestException(
-        'Unable to retrieve contract data. ' + error,
-      );
-    }
   }
 
   findAll() {
