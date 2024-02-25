@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { TokenInfos } from './token-infos.entity';
 
 @Entity()
 export class Blockchain {
@@ -13,4 +14,7 @@ export class Blockchain {
 
   @Column()
   url: string;
+
+  @OneToMany(() => TokenInfos, (tokenInfos) => tokenInfos.blockchainId)
+  tokenInfos: TokenInfos[];
 }

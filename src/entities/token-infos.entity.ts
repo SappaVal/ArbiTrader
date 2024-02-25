@@ -1,11 +1,20 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
+import { Blockchain } from './blockchain.entity';
 
 @Entity()
+@Unique(['contractAddress', 'blockchainId'])
 export class TokenInfos {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
+  @Column({ nullable: false })
   contractAddress: string;
 
   @Column()
@@ -19,4 +28,11 @@ export class TokenInfos {
 
   @Column('jsonb')
   abiJson: Record<string, any>;
+
+  @ManyToOne(() => Blockchain, (blockchain) => blockchain.tokenInfos)
+  @JoinColumn({ name: 'blockchainId' })
+  blockchain: Blockchain;
+
+  @Column({ nullable: false })
+  blockchainId: number;
 }

@@ -13,10 +13,12 @@ import { TokenInfos } from 'src/entities/token-infos.entity';
 import { Repository } from 'typeorm';
 import { CreateTokenInfoDto } from './dto/create-token-info.dto';
 import { UpdateTokenInfoDto } from './dto/update-token-info.dto';
+import { Blockchain } from 'src/entities/blockchain.entity';
 
 @Injectable()
 export class TokenInfosService {
-  private ethersProvider: ethers.JsonRpcProvider;
+  private ethProvider: ethers.JsonRpcProvider;
+  private bscProvider: ethers.JsonRpcProvider;
   private etherScanBaseUrl =
     'https://api.etherscan.io/api?module=contract&action=getabi';
   private infuraBaseUrl = 'https://mainnet.infura.io/v3/';
@@ -27,45 +29,82 @@ export class TokenInfosService {
     private httpService: HttpService,
     @InjectRepository(TokenInfos)
     private tokenInfosRepository: Repository<TokenInfos>,
+    @InjectRepository(Blockchain)
+    private blockchainRepository: Repository<Blockchain>,
   ) {
     this.etherScanBaseUrl +=
       '&apikey=' + configService.get<string>('ETHERSCAN_API_KEY');
-    this.ethersProvider = new ethers.JsonRpcProvider(
+    this.ethProvider = new ethers.JsonRpcProvider(
       this.infuraBaseUrl + configService.get<string>('INFURA_API_KEY'),
+    );
+
+    this.bscProvider = new ethers.JsonRpcProvider(
+      'https://bsc-dataseed.binance.org/',
     );
   }
 
-  async create(createTokenInfoDto: CreateTokenInfoDto) {
+  async create(createTokenInfoDto: CreateTokenInfoDto): Promise<TokenInfos> {
     const contractAddress = createTokenInfoDto.contractAddress;
 
-    if (
-      (await this.tokenInfosRepository.count({ where: { contractAddress } })) >
-      0
-    ) {
-      throw new ConflictException('Token already exists');
+    const blockchain = await this.blockchainRepository.findOne({
+      where: { shortName: createTokenInfoDto.blockchainSymbol },
+    });
+
+    if (!blockchain) {
+      throw new BadRequestException('Blockchain not found');
     }
 
-    if (!this.isValidEthAddress(contractAddress)) {
+    if (
+      (await this.tokenInfosRepository.count({
+        where: { contractAddress, blockchainId: blockchain.id },
+      })) > 0
+    ) {
+      throw new ConflictException('Token already exists for this blockchain');
+    }
+
+    if (!ethers.isAddress(contractAddress)) {
       throw new BadRequestException('Invalid address');
     }
 
+    let tokenInfo: TokenInfos;
+    switch (blockchain.shortName) {
+      case 'ETH':
+        tokenInfo = await this.createEthOrBscToken(contractAddress, blockchain);
+        break;
+      case 'BSC':
+        tokenInfo = await this.createEthOrBscToken(contractAddress, blockchain);
+        break;
+      default:
+        throw new BadRequestException('Blockchain not supported yet');
+    }
+
+    const createdTokenInfo = this.tokenInfosRepository.create(tokenInfo);
+
+    return this.tokenInfosRepository.save(createdTokenInfo);
+  }
+
+  async createEthOrBscToken(
+    contractAddress: string,
+    blockchain: Blockchain,
+  ): Promise<TokenInfos> {
     const contractABI = await this.getABI(contractAddress);
 
     const erc20Contract = new ethers.Contract(
       contractAddress,
       contractABI,
-      this.ethersProvider,
+      this.ethProvider,
     );
 
-    const tokenInfo = this.tokenInfosRepository.create({
+    const tokenInfo = {
       contractAddress: contractAddress,
       name: await this.getContractProperty(erc20Contract, 'name'),
       symbol: await this.getContractProperty(erc20Contract, 'symbol'),
       totalSupply: await this.getTotalSupply(erc20Contract),
       abiJson: contractABI,
-    });
+      blockchainId: blockchain.id,
+    } as TokenInfos;
 
-    return this.tokenInfosRepository.save(tokenInfo);
+    return tokenInfo;
   }
 
   async getContractProperty(
@@ -95,13 +134,9 @@ export class TokenInfosService {
       return convertedResult;
     } catch (error) {
       throw new BadRequestException(
-        `Unable to retrieve ${propertyName} from contract. ${error}`,
+        `Unable to retrieve ${propertyName}() from contract. ${error}`,
       );
     }
-  }
-
-  private isValidEthAddress(address: string): boolean {
-    return ethers.isAddress(address);
   }
 
   private async getABI(contractAddress: string): Promise<any | null> {
