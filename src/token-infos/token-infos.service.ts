@@ -44,6 +44,13 @@ export class TokenInfosService {
   }
 
   async create(createTokenInfoDto: CreateTokenInfoDto): Promise<TokenInfos> {
+    if (
+      !createTokenInfoDto.contractAddress ||
+      !createTokenInfoDto.blockchainSymbol
+    ) {
+      throw new BadRequestException('Invalid input');
+    }
+
     const contractAddress = createTokenInfoDto.contractAddress;
 
     const blockchain = await this.blockchainRepository.findOne({
