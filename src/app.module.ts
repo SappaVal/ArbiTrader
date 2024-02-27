@@ -6,12 +6,13 @@ import { BybitModule } from './bybit/bybit.module';
 import { CryptoPriceAggregatorModule } from './crypto-price-aggregator/crypto-price-aggregator.module';
 import { Exchange } from './entities/exchange.entity';
 import { HistoricalPrice } from './entities/historical-price.entity';
-import { TokenInfos } from './entities/token-infos.entity';
+import { TokenInfos } from './entities/token.entity';
 import { TradingPair } from './entities/trading-pair.entity';
 import { User } from './entities/user.entity';
 import { ExchangesModule } from './exchanges/exchanges.module';
 import { TokenInfosModule } from './token-infos/token-infos.module';
 import { Blockchain } from './entities/blockchain.entity';
+import { TokenBlockchain } from './entities/token-blockchain.entity';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { Blockchain } from './entities/blockchain.entity';
           TradingPair,
           TokenInfos,
           Blockchain,
+          TokenBlockchain,
         ],
         synchronize: true,
       }),

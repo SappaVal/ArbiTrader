@@ -6,20 +6,19 @@ import {
   Param,
   ParseIntPipe,
   Patch,
-  Post,
   Query,
-  Request,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { AdminGuard } from 'src/auth/guards/admin-auth.guard';
 import { JwtGuard } from 'src/auth/guards/jwt-auth.guard';
 import { User } from 'src/entities/user.entity';
 import { UserRole } from '../entities/enum/user-role.enum';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserExchangeDetailsDTO } from './dto/user-exchange-details.dto';
 import { UsersService } from './users.service';
 
+@ApiTags('User controller')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

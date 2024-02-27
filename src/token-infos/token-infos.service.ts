@@ -9,11 +9,12 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { decodeBytes32String, ethers } from 'ethers';
 import { lastValueFrom, map } from 'rxjs';
-import { TokenInfos } from 'src/entities/token-infos.entity';
+import { TokenInfos } from 'src/entities/token.entity';
 import { Repository } from 'typeorm';
 import { CreateTokenInfoDto } from './dto/create-token-info.dto';
 import { UpdateTokenInfoDto } from './dto/update-token-info.dto';
 import { Blockchain } from 'src/entities/blockchain.entity';
+import { TokenBlockchain } from './../entities/token-blockchain.entity';
 
 @Injectable()
 export class TokenInfosService {
@@ -31,6 +32,8 @@ export class TokenInfosService {
     private tokenInfosRepository: Repository<TokenInfos>,
     @InjectRepository(Blockchain)
     private blockchainRepository: Repository<Blockchain>,
+    @InjectRepository(TokenBlockchain)
+    private tokenBlockchainRepository: Repository<TokenBlockchain>,
   ) {
     this.etherScanBaseUrl +=
       '&apikey=' + configService.get<string>('ETHERSCAN_API_KEY');
@@ -43,14 +46,9 @@ export class TokenInfosService {
     );
   }
 
-  async create(createTokenInfoDto: CreateTokenInfoDto): Promise<TokenInfos> {
-    if (
-      !createTokenInfoDto.contractAddress ||
-      !createTokenInfoDto.blockchainSymbol
-    ) {
-      throw new BadRequestException('Invalid input');
-    }
-
+  async createEthOrBscToken(
+    createTokenInfoDto: CreateTokenInfoDto,
+  ): Promise<TokenInfos> {
     const contractAddress = createTokenInfoDto.contractAddress;
 
     const blockchain = await this.blockchainRepository.findOne({
@@ -61,39 +59,61 @@ export class TokenInfosService {
       throw new BadRequestException('Blockchain not found');
     }
 
-    if (
-      (await this.tokenInfosRepository.count({
-        where: { contractAddress, blockchainId: blockchain.id },
-      })) > 0
-    ) {
-      throw new ConflictException('Token already exists for this blockchain');
-    }
-
     if (!ethers.isAddress(contractAddress)) {
       throw new BadRequestException('Invalid address');
     }
 
-    let tokenInfo: TokenInfos;
+    let tokenInfoEntity: TokenInfos;
+    let tokenBlockchainEntity: TokenBlockchain;
     switch (blockchain.shortName) {
       case 'ETH':
-        tokenInfo = await this.createEthOrBscToken(contractAddress, blockchain);
-        break;
       case 'BSC':
-        tokenInfo = await this.createEthOrBscToken(contractAddress, blockchain);
+        tokenInfoEntity = await this.createStandardToken(contractAddress);
+        tokenBlockchainEntity = this.createTokenBlochain(
+          contractAddress,
+          blockchain,
+          tokenInfoEntity,
+        );
+
         break;
       default:
         throw new BadRequestException('Blockchain not supported yet');
     }
 
-    const createdTokenInfo = this.tokenInfosRepository.create(tokenInfo);
+    const tokenInfo = await this.tokenInfosRepository.findOne({
+      where: {
+        slug: tokenInfoEntity.slug,
+        symbol: tokenInfoEntity.symbol,
+        name: tokenInfoEntity.name,
+      },
+      relations: ['mainTokenBlockchain', 'mainTokenBlockchain.blockchain'],
+    });
 
-    return this.tokenInfosRepository.save(createdTokenInfo);
+    if (
+      tokenInfo &&
+      tokenInfo.mainTokenBlockchain &&
+      tokenInfo.mainTokenBlockchain.blockchain
+    ) {
+      throw new ConflictException(
+        `Token already exists with ${tokenInfo.mainTokenBlockchain.blockchain.shortName} main blockchain`,
+      );
+    }
+
+    const savedTokenInfo =
+      await this.tokenInfosRepository.save(tokenInfoEntity);
+
+    tokenBlockchainEntity.tokenInfo = savedTokenInfo;
+    const savedTokenBlockchain = await this.tokenBlockchainRepository.save(
+      tokenBlockchainEntity,
+    );
+
+    savedTokenInfo.mainTokenBlockchainId = savedTokenBlockchain.id;
+    await this.tokenInfosRepository.save(savedTokenInfo);
+
+    return savedTokenInfo;
   }
 
-  async createEthOrBscToken(
-    contractAddress: string,
-    blockchain: Blockchain,
-  ): Promise<TokenInfos> {
+  async createStandardToken(contractAddress: string): Promise<TokenInfos> {
     const contractABI = await this.getABI(contractAddress);
 
     const erc20Contract = new ethers.Contract(
@@ -102,16 +122,19 @@ export class TokenInfosService {
       this.ethProvider,
     );
 
-    const tokenInfo = {
-      contractAddress: contractAddress,
-      name: await this.getContractProperty(erc20Contract, 'name'),
+    const name = await this.getContractProperty(erc20Contract, 'name');
+    const supply = await this.getTotalSupply(erc20Contract);
+    return this.tokenInfosRepository.create({
+      name: name,
       symbol: await this.getContractProperty(erc20Contract, 'symbol'),
-      totalSupply: await this.getTotalSupply(erc20Contract),
-      abiJson: contractABI,
-      blockchainId: blockchain.id,
-    } as TokenInfos;
-
-    return tokenInfo;
+      slug: name.toLowerCase().replace(' ', '-'),
+      maxSupply: supply.toString(),
+      totalSupply: supply.toString(),
+      circulatingSupply: supply.toString(),
+      isActive: true,
+      isFiat: false,
+      isBlockchainNative: false,
+    });
   }
 
   async getContractProperty(
@@ -173,6 +196,17 @@ export class TokenInfosService {
     throw new BadRequestException('Unable to retrieve total supply');
   }
 
+  createTokenBlochain(
+    contract: string,
+    blockchain: Blockchain,
+    tokenInfo: TokenInfos,
+  ): TokenBlockchain {
+    return this.tokenBlockchainRepository.create({
+      contract: contract,
+      blockchain: blockchain,
+      tokenInfo: tokenInfo,
+    });
+  }
   findAll() {
     return `This action returns all tokenInfos`;
   }
