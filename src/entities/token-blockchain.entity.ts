@@ -1,17 +1,13 @@
 import { IsNumber, IsString } from 'class-validator';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryColumn,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { BaseTable } from './base/base.table';
 import { Blockchain } from './blockchain.entity';
 import { TokenInfos } from './token.entity';
-import { BaseTable } from './base/base.table';
 
 @Entity()
+@Index('unique_tokenInfoId_blockchainId', ['tokenInfoId', 'blockchainId'], {
+  unique: true,
+})
 export class TokenBlockchain extends BaseTable {
   @Column()
   @IsNumber()
@@ -21,7 +17,7 @@ export class TokenBlockchain extends BaseTable {
   @IsNumber()
   blockchainId: number;
 
-  @Column()
+  @Column({ nullable: false })
   @IsString()
   contract: string;
 
@@ -32,7 +28,4 @@ export class TokenBlockchain extends BaseTable {
   @ManyToOne(() => Blockchain, { nullable: false })
   @JoinColumn({ name: 'blockchainId' })
   blockchain: Blockchain;
-
-  @OneToMany(() => TokenInfos, (tokenInfos) => tokenInfos.mainTokenBlockchain)
-  tokenInfos: TokenInfos[];
 }
