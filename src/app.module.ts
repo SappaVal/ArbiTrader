@@ -13,6 +13,7 @@ import { ExchangesModule } from './exchanges/exchanges.module';
 import { TokenInfosModule } from './token-infos/token-infos.module';
 import { Blockchain } from './entities/blockchain.entity';
 import { TokenBlockchain } from './entities/token-blockchain.entity';
+import { KlinesModule } from './klines/klines.module';
 
 @Module({
   imports: [
@@ -30,15 +31,7 @@ import { TokenBlockchain } from './entities/token-blockchain.entity';
         username: configService.get<string>('POSTGRES_USERNAME'),
         password: configService.get<string>('POSTGRES_PASSWORD'),
         database: configService.get<string>('POSTGRES_DATABASE'),
-        entities: [
-          User,
-          Exchange,
-          HistoricalPrice,
-          TradingPair,
-          TokenInfos,
-          Blockchain,
-          TokenBlockchain,
-        ],
+        entities: [User, Exchange, HistoricalPrice, TradingPair, TokenInfos, Blockchain, TokenBlockchain],
         synchronize: true,
       }),
       inject: [ConfigService],
@@ -47,6 +40,7 @@ import { TokenBlockchain } from './entities/token-blockchain.entity';
     BybitModule,
     CryptoPriceAggregatorModule,
     TokenInfosModule,
+    KlinesModule,
   ],
 })
 export class AppModule {}

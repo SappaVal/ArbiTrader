@@ -1,20 +1,15 @@
-import { Controller, Get } from '@nestjs/common';
-import { CryptoPriceAggregatorService } from './crypto-price-aggregator.service';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get } from '@nestjs/common'
+import { CryptoPriceAggregatorService } from './crypto-price-aggregator.service'
+import { ApiTags, ApiOperation } from '@nestjs/swagger'
 
-@ApiTags('Crypto Price Aggregator')
-@Controller('crypto-price-aggregator')
+@ApiTags('Price')
+@Controller('price')
 export class CryptoPriceAggregatorController {
-  constructor(
-    private readonly cryptoPriceAggregatorService: CryptoPriceAggregatorService,
-  ) {}
+  constructor(private readonly cryptoPriceAggregatorService: CryptoPriceAggregatorService) {}
 
   @Get()
-  @ApiOperation({
-    summary: 'Get current price',
-    description: 'Get current price',
-  })
+  @ApiOperation({ summary: 'Get all current price', description: 'Get all current price from all pairs' })
   async getCurrentPrice() {
-    return await this.cryptoPriceAggregatorService.getCurrentPriceFromCache();
+    return await this.cryptoPriceAggregatorService.getCurrentPriceFromCache()
   }
 }
